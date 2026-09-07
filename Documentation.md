@@ -1,101 +1,128 @@
-# Jae's LIB - Documentation
+# Jae's Library Documentation
 
-Complete API reference for Jae's LIB.
+Jae's LIB is a Roblox UI library based on the Orion Library style. It provides themed windows, tabs, controls, configuration profiles, search, a command palette, and built-in hub management tools
 
----
-
-## Loading the Library
+## Loading
 
 ```lua
-local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/sajaesthebest/Jae-s-LIB/main/Source.lua"))()
+local OrionLib = loadstring(game:HttpGet("YOUR_LIBRARY_URL"))()
 ```
 
----
+The library requires a Roblox environment that supports the APIs used by the hub, including GUI instances, `HttpService`, and configuration file functions when persistence is enabled
 
-## MakeWindow
-
-Creates the main window.
+## Creating a Window
 
 ```lua
 local Window = OrionLib:MakeWindow({
-    Name = "Window Name",                  -- string
-    HidePremium = false,                   -- boolean
-    SaveConfig = false,                    -- boolean
-    ConfigFolder = "MyConfig",             -- string
-    IntroEnabled = true,                   -- boolean
-    IntroText = "My Hub",                  -- string
-    IntroIcon = "rbxassetid://8834748103", -- string
-    ShowIcon = false,                      -- boolean
-    Icon = "rbxassetid://8834748103",      -- string
-    Background = nil,                      -- string (rbxassetid)
-    BackgroundTransparency = 0.4,          -- number (0 to 1)
-    CloseCallback = function() end         -- function
+    Name = "My Hub",
+    ConfigFolder = "MyHub",
+    SaveConfig = true,
+    PersistUI = true,
+    IntroEnabled = false,
+    ShowIcon = true,
+    Icon = "rbxassetid://8834748103",
+    DashboardEnabled = true,
+    Dashboard = {
+        Name = "Home",
+        Title = "Welcome",
+        Content = "Choose a feature to begin."
+    }
 })
 ```
 
----
+### Window options
 
-## MakeTab
+| Option | Type | Default | Description |
+|---|---|---:|---|
+| `Name` | string | `Orion Library` | Window title. |
+| `ConfigFolder` | string | window name | Folder used for configuration files. |
+| `SaveConfig` | boolean | `false` | Enables saved control values. |
+| `PersistUI` | boolean | `true` | Saves window layout and UI preferences. |
+| `IntroEnabled` | boolean | `true` | Shows the intro animation. |
+| `IntroText` | string | `Orion Library` | Intro title. |
+| `IntroIcon` | string | default asset | Intro image. |
+| `ShowIcon` | boolean | `false` | Displays an icon in the title bar. |
+| `Icon` | string | default asset | Window icon. |
+| `Background` | string or nil | `nil` | Background image asset. |
+| `BackgroundTransparency` | number | `0.4` | Background image transparency. |
+| `DashboardEnabled` | boolean | `true` | Adds the built-in Home dashboard. |
+| `Dashboard` | table | `nil` | Custom dashboard settings. |
+| `CloseCallback` | function | empty function | Called when the window is hidden. |
 
-Creates a new tab.
+## Tabs
 
 ```lua
-local Tab = Window:MakeTab({
-    Name = "Tab Name",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
+local MainTab = Window:MakeTab({
+    Name = "Main",
+    Icon = "home"
 })
 ```
 
----
+Tab options:
 
-## Elements
+- `Name`: tab label.
+- `Icon`: Lucide icon name or Roblox asset ID.
+- `PremiumOnly`: replaces the tab contents with a Premium Only message.
 
-### AddSection
+Tabs can be selected from the sidebar, the command palette, or the built-in Tools tab.
+
+## Controls
+
+### Label
 
 ```lua
-local Section = Tab:AddSection({
-    Name = "Section Name"
-})
+MainTab:AddLabel("Status: ready")
 ```
 
-### AddLabel
+### Paragraph
 
 ```lua
-local Label = Tab:AddLabel("This is a label")
-
-Label:Set("New text")
+MainTab:AddParagraph(
+    "Information",
+    "This text can contain a longer description."
+)
 ```
 
-### AddParagraph
+### Button
 
 ```lua
-local Paragraph = Tab:AddParagraph("Title", "This is the content of the paragraph.")
-
-Paragraph:Set("New content")
-```
-
-### AddButton
-
-```lua
-Tab:AddButton({
-    Name = "Button Name",
-    Icon = "rbxassetid://3944703587", -- optional
+MainTab:AddButton({
+    Name = "Run action",
+    Icon = "play",
+    Favorite = true,
     Callback = function()
-        print("Clicked!")
+        print("Action executed")
     end
 })
 ```
 
-### AddToggle
+Button options:
+
+- `Name`: visible button label.
+- `Icon`: icon or asset ID.
+- `Favorite`: adds the action to Favorites when true.
+- `Callback`: function executed on click.
+
+The returned button object supports:
 
 ```lua
-local Toggle = Tab:AddToggle({
-    Name = "Toggle Name",
+local Action = MainTab:AddButton({
+    Name = "Action",
+    Callback = function() end
+})
+
+Action:Set("Updated action")
+Action:SetFavorite(true)
+```
+
+### Toggle
+
+```lua
+local Toggle = MainTab:AddToggle({
+    Name = "Enabled",
     Default = false,
-    Color = Color3.fromRGB(88, 101, 242), -- optional
-    Flag = "MyToggle",                    -- optional (for config)
-    Save = true,                          -- optional
+    Flag = "Enabled",
+    Save = true,
     Callback = function(Value)
         print(Value)
     end
@@ -104,241 +131,311 @@ local Toggle = Tab:AddToggle({
 Toggle:Set(true)
 ```
 
-### AddSlider
+### Slider
 
 ```lua
-local Slider = Tab:AddSlider({
-    Name = "Slider Name",
-    Min = 0,
+local Slider = MainTab:AddSlider({
+    Name = "Walk speed",
+    Min = 16,
     Max = 100,
-    Default = 50,
     Increment = 1,
-    ValueName = "%",
-    Color = Color3.fromRGB(88, 101, 242), -- optional
-    Flag = "MySlider",
+    Default = 16,
+    ValueName = "studs",
+    Flag = "WalkSpeed",
     Save = true,
     Callback = function(Value)
         print(Value)
     end
 })
 
-Slider:Set(75)
+Slider:Set(32)
 ```
 
-### AddDropdown
+### Dropdown
 
 ```lua
-local Dropdown = Tab:AddDropdown({
-    Name = "Dropdown Name",
-    Default = "Option 1",
-    Options = {"Option 1", "Option 2", "Option 3"},
-    Flag = "MyDropdown",
+local Dropdown = MainTab:AddDropdown({
+    Name = "Mode",
+    Options = {"Safe", "Fast", "Custom"},
+    Default = "Safe",
+    Flag = "Mode",
     Save = true,
     Callback = function(Value)
         print(Value)
     end
 })
 
-Dropdown:Set("Option 2")
-Dropdown:Refresh({"New 1", "New 2"}, true) -- true = clear old options
+Dropdown:Set("Fast")
+Dropdown:Refresh({"Safe", "Fast", "Custom", "Experimental"}, true)
 ```
 
-### AddBind
+### Keybind
 
 ```lua
-local Bind = Tab:AddBind({
-    Name = "Keybind",
-    Default = Enum.KeyCode.E,
+local Bind = MainTab:AddBind({
+    Name = "Toggle menu",
+    Default = Enum.KeyCode.RightShift,
     Hold = false,
-    Flag = "MyBind",
+    Flag = "MenuBind",
     Save = true,
-    Callback = function(Value) -- Value is true/false only when Hold = true
-        print("Key pressed")
+    Callback = function()
+        print("Bind pressed")
     end
 })
-
-Bind:Set(Enum.KeyCode.Q)
 ```
 
-### AddTextbox
+The returned bind supports editing and removal:
 
 ```lua
-Tab:AddTextbox({
-    Name = "Textbox Name",
+Bind:Set(Enum.KeyCode.Insert)
+Bind:Remove()
+```
+
+Keybinds registered with a `Flag` or `Name` are available through `OrionLib.Binds`.
+
+### Textbox
+
+```lua
+local Textbox = MainTab:AddTextbox({
+    Name = "Player name",
     Default = "",
     TextDisappear = false,
-    Callback = function(Value)
-        print(Value)
-    end
-})
-```
-
-### AddColorpicker
-
-```lua
-local Colorpicker = Tab:AddColorpicker({
-    Name = "Colorpicker",
-    Default = Color3.fromRGB(255, 255, 255),
-    Flag = "MyColor",
+    Flag = "PlayerName",
     Save = true,
     Callback = function(Value)
         print(Value)
     end
 })
 
-Colorpicker:Set(Color3.fromRGB(255, 0, 0))
+Textbox:Set("Player")
 ```
 
----
+### Colorpicker
+
+```lua
+local Colorpicker = MainTab:AddColorpicker({
+    Name = "Accent color",
+    Default = Color3.fromRGB(88, 101, 242),
+    Flag = "AccentColor",
+    Save = true,
+    Callback = function(Color)
+        print(Color)
+    end
+})
+
+Colorpicker:Set(Color3.fromRGB(70, 200, 120))
+```
+
+## Built-in Features
+
+### Search
+
+The top bar search field filters visible controls across all tabs. Search matches labels, button text, textbox text, and other visible UI text.
+
+### Command Palette
+
+Open the command palette with the top-bar button or `Ctrl+K`.
+
+The palette provides:
+
+- Navigation to every tab.
+- Save profile.
+- Load profile.
+
+### Home Dashboard
+
+The Home tab includes:
+
+- Hub title and description.
+- Active profile textbox.
+- Save preset.
+- Load preset.
+- Quick access information.
+
+Disable it with:
+
+```lua
+DashboardEnabled = false
+```
+
+### Tools Tab
+
+The built-in Tools tab contains:
+
+- Theme switching and theme editing.
+- Animation, transparency, and scale settings.
+- Keybind manager.
+- Favorites and recent actions.
+- Notification history.
+- Session FPS, ping, and duration.
+- Player search and sorting.
+- Public server browser.
+- Reset actions.
+- Developer event log and export.
+
+## Themes
+
+Built-in themes:
+
+- `Default`
+- `Dark`
+- `Midnight`
+- `Purple`
+- `Green`
+
+```lua
+OrionLib:SetTheme("Midnight")
+local Theme = OrionLib:GetTheme()
+local Accent = OrionLib:GetThemeColor("Accent")
+```
+
+Create a custom theme:
+
+```lua
+OrionLib:CreateTheme("Ocean", {
+    Main = Color3.fromRGB(10, 18, 28),
+    Second = Color3.fromRGB(16, 30, 44),
+    Stroke = Color3.fromRGB(36, 70, 92),
+    Divider = Color3.fromRGB(24, 48, 64),
+    Text = Color3.fromRGB(235, 245, 255),
+    TextDark = Color3.fromRGB(135, 165, 185),
+    Accent = Color3.fromRGB(40, 180, 220)
+})
+
+OrionLib:SetTheme("Ocean")
+```
+
+Change one color in the active theme:
+
+```lua
+OrionLib:ChangeThemeColor(
+    "Accent",
+    Color3.fromRGB(255, 180, 70)
+)
+```
+
+## Profiles and Configuration
+
+Controls are saved only when both conditions are met:
+
+1. The window uses `SaveConfig = true`.
+2. The control uses `Save = true` and a `Flag`.
+
+```lua
+OrionLib:SaveConfiguration("combat")
+OrionLib:LoadConfiguration("combat")
+OrionLib:SetProfile("combat")
+print(OrionLib:GetProfile())
+```
+
+Legacy control values are stored in:
+
+```text
+ConfigFolder/ProfileName.txt
+```
+
+UI state is stored separately in:
+
+```text
+ConfigFolder/GameId.ui.txt
+```
+
+UI state includes:
+
+- Window position.
+- Window size.
+- Selected tab.
+- Selected theme.
+- UI scale.
+- Transparency.
+- Animation preference.
+
+Disable UI persistence with:
+
+```lua
+PersistUI = false
+```
+
+## Favorites and Recent Actions
+
+Favorites can be declared on buttons or managed at runtime:
+
+```lua
+OrionLib:AddFavorite("Open inventory", function()
+    print("Inventory opened")
+end)
+
+OrionLib:RemoveFavorite("Open inventory")
+local Favorites = OrionLib:GetFavorites()
+local Recent = OrionLib:GetRecentUsed()
+```
+
+Button clicks are automatically added to the recently used list. The built-in Tools tab can run stored favorites and recent actions.
 
 ## Notifications
 
 ```lua
 OrionLib:MakeNotification({
-    Name = "Title",
-    Content = "This is the notification content.",
-    Image = "rbxassetid://4384403532",
-    Time = 5
+    Name = "Success",
+    Content = "The action completed.",
+    Time = 4,
+    Image = "rbxassetid://4384403532"
 })
 ```
 
----
-
-## Themes
-
-### SetTheme
+Notification entries remain in memory after the visual notification disappears:
 
 ```lua
-OrionLib:SetTheme("Purple") -- Default | Dark | Midnight | Purple | Green
+local History = OrionLib:GetNotificationHistory()
+OrionLib:ClearNotificationHistory()
 ```
 
-### CreateTheme
+## Developer Event Log
 
 ```lua
-OrionLib:CreateTheme("Custom", {
-    Main = Color3.fromRGB(16, 16, 20),
-    Second = Color3.fromRGB(22, 22, 28),
-    Stroke = Color3.fromRGB(40, 40, 50),
-    Divider = Color3.fromRGB(30, 30, 38),
-    Text = Color3.fromRGB(240, 240, 245),
-    TextDark = Color3.fromRGB(130, 130, 145),
-    Accent = Color3.fromRGB(88, 101, 242)
-})
+OrionLib:Log("system", "Feature initialized")
+local Events = OrionLib:GetEventLog()
+OrionLib:ClearEventLog()
 ```
 
-### ChangeThemeColor
+The Tools tab can search, clear, and export the event log to `event-log.txt` inside the configured folder.
+
+## Window and UI Management
 
 ```lua
-OrionLib:ChangeThemeColor("Accent", Color3.fromRGB(255, 100, 50))
+OrionLib:SetBackground("rbxassetid://123456789", 0.5)
+OrionLib:SetTheme("Dark")
+OrionLib:Destroy()
 ```
 
----
+The window can be dragged and resized. Position and size are persisted when `PersistUI` is enabled.
 
-## Background
+## Player and Server Tools
 
-### On Window Creation
+The Tools tab uses Roblox services directly:
 
-```lua
-OrionLib:MakeWindow({
-    Background = "rbxassetid://123456789",
-    BackgroundTransparency = 0.4
-})
-```
+- `Players:GetPlayers()` for the player list.
+- `PlayerAdded` and `PlayerRemoving` for live updates.
+- `Stats.Network.ServerStatsItem["Data Ping"]` for ping.
+- `games.roblox.com/v1/games/{placeId}/servers/Public` for public servers.
+- `TeleportService:TeleportToPlaceInstance` for joining a selected server.
 
-### Dynamically
+HTTP requests, teleporting, and filesystem persistence depend on the execution environment. All server and teleport operations are guarded so unavailable capabilities do not crash the UI.
 
-```lua
-OrionLib:SetBackground("rbxassetid://123456789", 0.4)
-OrionLib:SetBackground(nil) -- removes the background
-```
+## Reset Options
 
----
+The Tools tab provides:
 
-## Config System
+- Reset tabs: clears search and selects the first tab.
+- Reset preset: removes the active profile flag configuration file.
+- Reset UI settings: restores the default theme, scale, transparency, animations, position, and size.
 
-When `SaveConfig = true`, the library automatically saves and loads values that have `Flag` + `Save = true`.
+## Cleanup
 
-Supported elements:
-- Toggle
-- Slider
-- Dropdown
-- Bind
-- Colorpicker
-
-```lua
-OrionLib:Init() -- Call this at the end of your script to load saved config
-```
-
----
-
-## Other Functions
-
-### Destroy
+Call `Destroy` when the hub is no longer needed:
 
 ```lua
 OrionLib:Destroy()
 ```
 
-### IsRunning
-
-```lua
-if OrionLib:IsRunning() then
-    print("UI is active")
-end
-```
-
----
-
-## Full Example
-
-```lua
-local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/sajaesthebest/Jae-s-LIB/main/Source.lua"))()
-
-local Window = OrionLib:MakeWindow({
-    Name = "Example Hub",
-    SaveConfig = true,
-    ConfigFolder = "ExampleHub",
-    IntroEnabled = true,
-    IntroText = "Example Hub"
-})
-
-local Main = Window:MakeTab({
-    Name = "Main",
-    Icon = "rbxassetid://4483345998"
-})
-
-Main:AddButton({
-    Name = "Notify",
-    Callback = function()
-        OrionLib:MakeNotification({
-            Name = "Hello",
-            Content = "This is a test notification",
-            Time = 4
-        })
-    end
-})
-
-local Config = Window:MakeTab({
-    Name = "Config",
-    Icon = "rbxassetid://6031280882"
-})
-
-Config:AddDropdown({
-    Name = "Theme",
-    Default = "Default",
-    Options = {"Default", "Dark", "Midnight", "Purple", "Green"},
-    Callback = function(Value)
-        OrionLib:SetTheme(Value)
-    end
-})
-
-Config:AddColorpicker({
-    Name = "Accent",
-    Default = Color3.fromRGB(88, 101, 242),
-    Callback = function(Value)
-        OrionLib:ChangeThemeColor("Accent", Value)
-    end
-})
-
-OrionLib:Init()
-```
+The library tracks its managed connections and disconnects them when the main interface is destroyed.
