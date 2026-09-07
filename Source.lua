@@ -59,9 +59,11 @@ local OrionLib = {
 	},
 	SelectedTheme = "Default",
 	Folder = nil,
-	SaveCfg = false
+	SaveCfg = false,
+	Version = "2.0"
 }
 
+-- Carregar ícones com tratamento de erro
 local Icons = {}
 pcall(function()
 	Icons = HttpService:JSONDecode(game:HttpGetAsync("https://raw.githubusercontent.com/evoincorp/lucideblox/master/src/modules/util/icons.json")).icons
@@ -80,6 +82,7 @@ else
 	Orion.Parent = gethui and gethui() or game.CoreGui
 end
 
+-- Limpar instâncias antigas da GUI
 for _, Interface in ipairs((gethui and gethui() or game.CoreGui):GetChildren()) do
 	if Interface.Name == Orion.Name and Interface ~= Orion then
 		Interface:Destroy()
@@ -97,10 +100,11 @@ local function AddConnection(Signal, Function)
 	return Conn
 end
 
+-- Cleanup automático
 task.spawn(function()
 	while OrionLib:IsRunning() do task.wait(1) end
 	for _, Conn in next, OrionLib.Connections do
-		Conn:Disconnect()
+		pcall(function() Conn:Disconnect() end)
 	end
 end)
 
@@ -206,6 +210,14 @@ function OrionLib:ChangeThemeColor(ColorType, NewColor)
 	end
 end
 
+function OrionLib:GetTheme(ThemeName)
+	return OrionLib.Themes[ThemeName or OrionLib.SelectedTheme]
+end
+
+function OrionLib:GetThemeColor(ColorType)
+	return OrionLib.Themes[OrionLib.SelectedTheme][ColorType]
+end
+
 local function PackColor(Color)
 	return {R = Color.R * 255, G = Color.G * 255, B = Color.B * 255}
 end
@@ -237,7 +249,9 @@ local function SaveCfg(Name)
 			Data[i] = v.Type == "Colorpicker" and PackColor(v.Value) or v.Value
 		end
 	end
-	writefile(OrionLib.Folder .. "/" .. Name .. ".txt", HttpService:JSONEncode(Data))
+	pcall(function()
+		writefile(OrionLib.Folder .. "/" .. Name .. ".txt", HttpService:JSONEncode(Data))
+	end)
 end
 
 local WhitelistedMouse = {Enum.UserInputType.MouseButton1, Enum.UserInputType.MouseButton2, Enum.UserInputType.MouseButton3}
@@ -249,6 +263,8 @@ local function CheckKey(Table, Key)
 	end
 	return false
 end
+
+-- ========== ELEMENTOS BÁSICOS ==========
 
 CreateElement("Corner", function(Scale, Offset)
 	return Create("UICorner", {CornerRadius = UDim.new(Scale or 0, Offset or 8)})
@@ -342,6 +358,8 @@ CreateElement("Label", function(Text, TextSize, Transparency)
 	})
 end)
 
+-- ========== FUNCIONALIDADES AVANÇADAS ==========
+
 local function AddDraggingFunctionality(DragPoint, Main)
 	local Dragging, DragInput, MousePos, FramePos
 	DragPoint.InputBegan:Connect(function(Input)
@@ -430,6 +448,8 @@ local function AddResizeFunctionality(Main, MinSize)
 	end)
 end
 
+-- ========== NOTIFICAÇÕES ==========
+
 local NotificationHolder = SetProps(SetChildren(MakeElement("TFrame"), {
 	SetProps(MakeElement("List"), {
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
@@ -514,6 +534,8 @@ function OrionLib:Init()
 		end)
 	end
 end
+
+-- ========== JANELA PRINCIPAL ==========
 
 function OrionLib:MakeWindow(WindowConfig)
 	local FirstTab = true
@@ -693,7 +715,7 @@ function OrionLib:MakeWindow(WindowConfig)
 	AddDraggingFunctionality(DragPoint, MainWindow)
 	AddResizeFunctionality(MainWindow, Vector2.new(480, 280))
 
-		if WindowConfig.Background then
+	if WindowConfig.Background then
 		SetProps(MakeElement("Image", WindowConfig.Background), {
 			Size = UDim2.new(1, 0, 1, 0),
 			Position = UDim2.new(0, 0, 0, 0),
@@ -772,6 +794,8 @@ function OrionLib:MakeWindow(WindowConfig)
 		TweenService:Create(Text, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {TextTransparency = 0}):Play()
 		task.wait(1.6)
 		TweenService:Create(Text, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {TextTransparency = 1}):Play()
+		TweenService:Create(Logo, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {ImageTransparency = 1}):Play()
+		task.wait(0.3)
 		MainWindow.Visible = true
 		Logo:Destroy()
 		Text:Destroy()
@@ -980,7 +1004,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				ToggleConfig.Flag = ToggleConfig.Flag or nil
 				ToggleConfig.Save = ToggleConfig.Save or false
 
-				local Toggle = {Value = ToggleConfig.Default, Save = ToggleConfig.Save}
+				local Toggle = {Value = ToggleConfig.Default, Save = ToggleConfig.Save, Type = "Toggle"}
 				local Click = SetProps(MakeElement("Button"), {Size = UDim2.new(1, 0, 1, 0)})
 
 				local ToggleBox = SetChildren(SetProps(MakeElement("RoundFrame", ToggleConfig.Color, 0, 4), {
@@ -1076,7 +1100,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				SliderConfig.Flag = SliderConfig.Flag or nil
 				SliderConfig.Save = SliderConfig.Save or false
 
-				local Slider = {Value = SliderConfig.Default, Save = SliderConfig.Save}
+				local Slider = {Value = SliderConfig.Default, Save = SliderConfig.Save, Type = "Slider"}
 				local Dragging = false
 
 				local SliderDrag = SetChildren(SetProps(MakeElement("RoundFrame", SliderConfig.Color, 0, 5), {
@@ -1440,7 +1464,10 @@ function OrionLib:MakeWindow(WindowConfig)
 				TextboxConfig.Default = TextboxConfig.Default or ""
 				TextboxConfig.TextDisappear = TextboxConfig.TextDisappear or false
 				TextboxConfig.Callback = TextboxConfig.Callback or function() end
+				TextboxConfig.Flag = TextboxConfig.Flag or nil
+				TextboxConfig.Save = TextboxConfig.Save or false
 
+				local Textbox = {Value = TextboxConfig.Default, Type = "Textbox", Save = TextboxConfig.Save}
 				local Click = SetProps(MakeElement("Button"), {Size = UDim2.new(1, 0, 1, 0)})
 
 				local TextboxActual = AddThemeObject(Create("TextBox", {
@@ -1486,17 +1513,31 @@ function OrionLib:MakeWindow(WindowConfig)
 				end)
 
 				AddConnection(TextboxActual.FocusLost, function()
+					Textbox.Value = TextboxActual.Text
 					TextboxConfig.Callback(TextboxActual.Text)
 					if TextboxConfig.TextDisappear then
 						TextboxActual.Text = ""
 					end
+					SaveCfg(game.GameId)
 				end)
 
 				TextboxActual.Text = TextboxConfig.Default
+				Textbox.Value = TextboxConfig.Default
 
 				AddConnection(Click.MouseButton1Up, function()
 					TextboxActual:CaptureFocus()
 				end)
+
+				function Textbox:Set(Text)
+					Textbox.Value = Text
+					TextboxActual.Text = Text
+				end
+
+				if TextboxConfig.Flag then
+					OrionLib.Flags[TextboxConfig.Flag] = Textbox
+				end
+
+				return Textbox
 			end
 
 			function ElementFunction:AddColorpicker(ColorpickerConfig)
@@ -1751,46 +1792,64 @@ function OrionLib:MakeWindow(WindowConfig)
 	end
 
 	OrionLib.MainWindow = MainWindow
-OrionLib.BackgroundImage = nil
+	OrionLib.BackgroundImage = nil
 
-if WindowConfig.Background then
-	OrionLib.BackgroundImage = SetProps(MakeElement("Image", WindowConfig.Background), {
-		Size = UDim2.new(1, 0, 1, 0),
-		Position = UDim2.new(0, 0, 0, 0),
-		BackgroundTransparency = 1,
-		ImageTransparency = WindowConfig.BackgroundTransparency or 0.4,
-		ScaleType = Enum.ScaleType.Crop,
-		ZIndex = 0,
-		Parent = MainWindow
-	})
-end
-
-function OrionLib:SetBackground(ImageId, Transparency)
-	Transparency = Transparency or 0.4
-
-	if OrionLib.BackgroundImage then
-		OrionLib.BackgroundImage:Destroy()
-		OrionLib.BackgroundImage = nil
-	end
-
-	if ImageId and ImageId ~= "" then
-		OrionLib.BackgroundImage = SetProps(MakeElement("Image", ImageId), {
+	if WindowConfig.Background then
+		OrionLib.BackgroundImage = SetProps(MakeElement("Image", WindowConfig.Background), {
 			Size = UDim2.new(1, 0, 1, 0),
 			Position = UDim2.new(0, 0, 0, 0),
 			BackgroundTransparency = 1,
-			ImageTransparency = Transparency,
+			ImageTransparency = WindowConfig.BackgroundTransparency or 0.4,
 			ScaleType = Enum.ScaleType.Crop,
 			ZIndex = 0,
-			Parent = OrionLib.MainWindow
+			Parent = MainWindow
 		})
 	end
-end
+
+	function OrionLib:SetBackground(ImageId, Transparency)
+		Transparency = Transparency or 0.4
+
+		if OrionLib.BackgroundImage then
+			OrionLib.BackgroundImage:Destroy()
+			OrionLib.BackgroundImage = nil
+		end
+
+		if ImageId and ImageId ~= "" then
+			OrionLib.BackgroundImage = SetProps(MakeElement("Image", ImageId), {
+				Size = UDim2.new(1, 0, 1, 0),
+				Position = UDim2.new(0, 0, 0, 0),
+				BackgroundTransparency = 1,
+				ImageTransparency = Transparency,
+				ScaleType = Enum.ScaleType.Crop,
+				ZIndex = 0,
+				Parent = OrionLib.MainWindow
+			})
+		end
+	end
 
 	return TabFunction
 end
 
 function OrionLib:Destroy()
-	Orion:Destroy()
+	pcall(function()
+		Orion:Destroy()
+	end)
+end
+
+function OrionLib:SaveConfiguration(ConfigName)
+	SaveCfg(ConfigName or game.GameId)
+end
+
+function OrionLib:LoadConfiguration(ConfigName)
+	pcall(function()
+		if isfile(OrionLib.Folder .. "/" .. (ConfigName or game.GameId) .. ".txt") then
+			LoadCfg(readfile(OrionLib.Folder .. "/" .. (ConfigName or game.GameId) .. ".txt"))
+		end
+	end)
+end
+
+function OrionLib:GetVersion()
+	return OrionLib.Version
 end
 
 return OrionLib
