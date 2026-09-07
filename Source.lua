@@ -1,1025 +1,775 @@
-local UModule = {}
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+local HttpService = game:GetService("HttpService")
 
-local vgs = {
-    CE = game:GetService("ReplicatedStorage").CharacterEvents,
-    CAS = game:GetService("ContextActionService"),
-    VIM = game:GetService("VirtualInputManager"),
-    p = game:GetService("Players").LocalPlayer,
-    RS = game:GetService("ReplicatedStorage"),
-    UIS = game:GetService("UserInputService"),
-    TXS = game:GetService("TextChatService"),
-    RF = game:GetService("ReplicatedFirst"),
-    PS = game:GetService("PhysicsService"),
-    TS = game:GetService("TweenService"),
-    RunS = game:GetService("RunService"),
-    SG = game:GetService("StarterGui"),
-    Debris = game:GetService("Debris"),
-    ps = game:GetService("Players"),
+local OrionLib = {
+	Elements = {},
+	ThemeObjects = {},
+	Connections = {},
+	Flags = {},
+	Themes = {
+		Default = {
+			Main = Color3.fromRGB(16, 16, 20),
+			Second = Color3.fromRGB(22, 22, 28),
+			Stroke = Color3.fromRGB(40, 40, 50),
+			Divider = Color3.fromRGB(30, 30, 38),
+			Text = Color3.fromRGB(240, 240, 245),
+			TextDark = Color3.fromRGB(130, 130, 145),
+			Accent = Color3.fromRGB(88, 101, 242)
+		},
+		Dark = {
+			Main = Color3.fromRGB(12, 12, 14),
+			Second = Color3.fromRGB(18, 18, 22),
+			Stroke = Color3.fromRGB(36, 36, 44),
+			Divider = Color3.fromRGB(28, 28, 34),
+			Text = Color3.fromRGB(235, 235, 240),
+			TextDark = Color3.fromRGB(120, 120, 135),
+			Accent = Color3.fromRGB(100, 110, 255)
+		},
+		Midnight = {
+			Main = Color3.fromRGB(10, 12, 20),
+			Second = Color3.fromRGB(14, 16, 26),
+			Stroke = Color3.fromRGB(28, 32, 48),
+			Divider = Color3.fromRGB(22, 26, 40),
+			Text = Color3.fromRGB(230, 235, 250),
+			TextDark = Color3.fromRGB(110, 120, 150),
+			Accent = Color3.fromRGB(70, 130, 255)
+		},
+		Purple = {
+			Main = Color3.fromRGB(16, 12, 22),
+			Second = Color3.fromRGB(22, 16, 30),
+			Stroke = Color3.fromRGB(44, 34, 56),
+			Divider = Color3.fromRGB(36, 28, 46),
+			Text = Color3.fromRGB(240, 235, 250),
+			TextDark = Color3.fromRGB(140, 125, 160),
+			Accent = Color3.fromRGB(160, 100, 255)
+		},
+		Green = {
+			Main = Color3.fromRGB(12, 16, 14),
+			Second = Color3.fromRGB(16, 22, 18),
+			Stroke = Color3.fromRGB(32, 44, 36),
+			Divider = Color3.fromRGB(26, 36, 30),
+			Text = Color3.fromRGB(235, 245, 240),
+			TextDark = Color3.fromRGB(120, 145, 130),
+			Accent = Color3.fromRGB(70, 200, 120)
+		}
+	},
+	SelectedTheme = "Default",
+	Folder = nil,
+	SaveCfg = false
 }
 
-local gtable = getgenv()
-
-UModule.env = setmetatable({}, {
-    __newindex = function(t, key, value)
-        local old = gtable[key]
-        
-        if old ~= nil then
-            if type(old) == "boolean" then
-                gtable[key] = false
-                gtable[key] = nil
-                gtable[key] = value
-                return
-            end
-            if type(old) == "string" then
-                gtable[key] = nil
-            end
-            
-            if type(old) == "userdata" or (type(old) == "table" and type(rawget(old, "Disconnect")) == "function") then
-                pcall(function()
-                    old:Disconnect()
-                end)
-                gtable[key] = nil
-            elseif type(old) == "table" then
-                for k, v in pairs(old) do
-                    if type(v) == "boolean" then
-                        old[k] = false
-                        old[k] = nil
-                    elseif type(v) == "string" then
-                        old[k] = nil
-                    elseif type(v) == "userdata" or (type(v) == "table" and type(rawget(v, "Disconnect")) == "function") then
-                        pcall(function()
-                            v:Disconnect()
-                        end)
-                        old[k] = nil
-                    end
-                end
-            end
-        end
-        
-        gtable[key] = value
-    end,
-    __index = function(t, key)
-        return gtable[key]
-    end
-})
-
-UModule.env.ov = {
-    char = vgs.p.Character or vgs.p.CharacterAdded:Wait(),
-    inv = workspace[vgs.p.Name .. "SpawnedInToys"],
-    cam = workspace.CurrentCamera,
-    mouse = vgs.p:GetMouse(),
-}
-
-UModule.env.Connections = UModule.env.Connections or {}
-UModule.env.Valores = UModule.env.Valores or {}
-UModule.env.Toggle = UModule.env.Toggle or {}
-UModule.env.Timers = UModule.env.Timers or {}
-UModule.env.Conns = UModule.env.Conns or {}
-UModule.env.TempV = UModule.env.TempV or {}
-UModule.env.TempL = UModule.env.TempL or {}
-UModule.env.TempT = UModule.env.TempT or {}
-UModule.env.TempC = UModule.env.TempC or {}
-UModule.env.Drops = UModule.env.Drops or {}
-UModule.env.Lists = UModule.env.Lists or {}
-UModule.env.Vars = UModule.env.Vars or {}
-UModule.env.l = UModule.env.l or {}
-UModule.env.v = UModule.env.v or {}
-
-UModule.env.fpsval = 60
-
-if not UModule.env.fpstrack then
-    UModule.env.fpstrack = vgs.RunS.RenderStepped:Connect(function(dt)
-        if dt > 0 then
-            local raw = math.floor(1 / dt)
-            UModule.env.fpsval = math.min(raw, 9999)
-        end
-    end)
-end
-
-function UModule.fps()
-    return UModule.env.fpsval
-end
-
-if UModule.env.Conns.CharAddCnn then
-    UModule.env.Conns.CharAddCnn = nil
-end
-UModule.env.Conns.CharAddCnn = vgs.p.CharacterAdded:Connect(function(char)
-    UModule.env.ov.char = char
+local Icons = {}
+pcall(function()
+	Icons = HttpService:JSONDecode(game:HttpGetAsync("https://raw.githubusercontent.com/evoincorp/lucideblox/master/src/modules/util/icons.json")).icons
 end)
 
-function UModule.p(...)
-    local args = {...}
-    local name, model, time
-    
-    for _, arg in ipairs(args) do
-        local t = type(arg)
-        if t == "string" then
-            name = arg
-        elseif t == "number" then
-            time = arg
-        elseif typeof(arg) == "Instance" then
-            model = arg
-        end
-    end
-    
-    if not name or not model then return nil end
-    
-    if time then 
-        return model:WaitForChild(name, time) 
-    else 
-        return model:FindFirstChild(name) 
-    end
+local function GetIcon(IconName)
+	return Icons[IconName]
 end
 
-function UModule.MBP(name)
-    local char = UModule.env.ov.char
-    return char:FindFirstChild(name) or char:WaitForChild(name)
+local Orion = Instance.new("ScreenGui")
+Orion.Name = "Orion"
+if syn then
+	syn.protect_gui(Orion)
+	Orion.Parent = game.CoreGui
+else
+	Orion.Parent = gethui and gethui() or game.CoreGui
 end
 
-function UModule.inpast(model)
-    return workspace[vgs.p.Name .. "SpawnedInToys"]:FindFirstChild(model)
+for _, Interface in ipairs((gethui and gethui() or game.CoreGui):GetChildren()) do
+	if Interface.Name == Orion.Name and Interface ~= Orion then
+		Interface:Destroy()
+	end
 end
 
-function UModule.GPNames(mode, arg)
-    local pnames = {}
-    if mode == "func" then
-        for _, p in ipairs(vgs.ps:GetPlayers()) do
-            if p ~= vgs.p and not arg() then
-                table.insert(pnames, p.Name .. " (" .. p.DisplayName .. ")")
-            end
-        end
-        return pnames
-    end
-    for _, p in ipairs(vgs.ps:GetPlayers()) do
-        if p ~= vgs.p then
-            table.insert(pnames, p.Name .. " (" .. p.DisplayName .. ")")
-        end
-    end
-    return pnames
+function OrionLib:IsRunning()
+	return Orion.Parent ~= nil
 end
 
-function UModule.SPE(pt, loc, cf, ang)
-    if pt and loc and cf then
-        vgs.RS.PlayerEvents.StickyPartEvent:FireServer(
-            pt, 
-            loc, 
-            cf * ang or CFrame.Angles(0, 0, 0)
-        )
-    end
+local function AddConnection(Signal, Function)
+	if not OrionLib:IsRunning() then return end
+	local Conn = Signal:Connect(Function)
+	table.insert(OrionLib.Connections, Conn)
+	return Conn
 end
 
-function UModule.SVel(...)
-    local args = {...}
-    local target
-    
-    for _, arg in ipairs(args) do
-        if typeof(arg) == "Instance" then
-            target = arg
-            break
-        end
-    end
-    
-    if target then
-        if target:IsA("BasePart") then
-            target.Velocity = Vector3.zero
-            target.RotVelocity = Vector3.zero
-            return 
-        elseif target:IsA("Model") then
-            for _, part in ipairs(target:GetDescendants()) do
-                if part:IsA("BasePart") then  
-                    part.Velocity = Vector3.zero
-                    part.RotVelocity = Vector3.zero
-                end
-            end
-            return 
-        end
-    end
-    
-    local hrp = UModule.MBP("HumanoidRootPart")
-    hrp.AssemblyLinearVelocity = Vector3.zero
-    hrp.AssemblyAngularVelocity = Vector3.zero
-    hrp.RotVelocity = Vector3.zero
+task.spawn(function()
+	while OrionLib:IsRunning() do task.wait(1) end
+	for _, Conn in next, OrionLib.Connections do
+		Conn:Disconnect()
+	end
+end)
+
+local function Create(Name, Properties, Children)
+	local Object = Instance.new(Name)
+	for i, v in next, Properties or {} do
+		Object[i] = v
+	end
+	for _, v in next, Children or {} do
+		v.Parent = Object
+	end
+	return Object
 end
 
-function UModule.FINF()
-    local uray = UModule.env.ov.cam:ScreenPointToRay(UModule.env.ov.mouse.X, UModule.env.ov.mouse.Y)
-    if not uray then return nil end
-    
-    local params = RaycastParams.new()
-    params.FilterDescendantsInstances = {UModule.env.ov.char}
-    params.FilterType = Enum.RaycastFilterType.Exclude
-    
-    local result = workspace:Raycast(uray.Origin, uray.Direction * 10000, params)
-    
-    if result and result.Instance:IsA("BasePart") then
-        return result.Instance
-    end
-    
-    return nil
+local function CreateElement(ElementName, ElementFunction)
+	OrionLib.Elements[ElementName] = function(...)
+		return ElementFunction(...)
+	end
 end
 
-function UModule.IPPP(part, mode)
-    local function isin(p, m)
-        return m and p:IsDescendantOf(m) or false
-    end
-    
-    local function cfolder(name)
-        return isin(part, workspace:FindFirstChild(name))
-    end
-    
-    local function cgrab()
-        if isin(part, workspace:FindFirstChild("GrabParts")) then return true end
-        
-        for _, char in pairs(workspace:GetChildren()) do
-            if char:IsA("Model") and char ~= UModule.env.ov.char then
-                if isin(part, char:FindFirstChild("GrabParts")) then return true end
-            end
-        end
-        return false
-    end
-    
-    local protected = cfolder("Map") or cfolder("Plots") or cfolder("Slots") 
-        or cgrab() or part:IsDescendantOf(UModule.env.ov.char)
-    
-    if mode == 2 and part:IsDescendantOf(UModule.env.ov.inv) then
-        return true
-    end
-    
-    return protected
+local function MakeElement(ElementName, ...)
+	return OrionLib.Elements[ElementName](...)
 end
 
-function UModule.tp(target)
-    local hrp = UModule.MBP("HumanoidRootPart")
-    local pos = typeof(target) == "Vector3" and target or 
-            (target:IsA("Model") and (target:GetPrimaryPartCFrame().Position or 
-            target:FindFirstChild("HumanoidRootPart").Position) or target.Position)
-    
-    if not pos then return end
-    
-    local hum = hrp.Parent:FindFirstChildOfClass("Humanoid")
-    local hip = hum and hum.HipHeight or 0
-    local offset = (hrp.Size.Y / 2) + hip + 3.5
-    local current = hrp.Parent:GetPivot()
-    
-    hrp.Parent:PivotTo(CFrame.new(pos.X, pos.Y + offset, pos.Z) * (current - current.Position))
+local function SetProps(Element, Props)
+	for Property, Value in next, Props do
+		Element[Property] = Value
+	end
+	return Element
 end
 
-function UModule.SICF(...)
-    local args = {...}
-    task.spawn(function()
-        local item, cf, mode
-        
-        for i = 1, #args do
-            local arg = args[i]
-            if arg ~= nil then
-                local t = type(arg)
-                if t == "string" then
-                    if not item then
-                        item = arg
-                    else
-                        mode = arg
-                    end
-                elseif typeof(arg) == "CFrame" then
-                    cf = arg
-                end
-            end
-        end
-        
-        if not item then return end
-        
-        local hrp = UModule.env.ov.char:WaitForChild("HumanoidRootPart")
-        local rotation = Vector3.zero
-
-        if mode == "Default" then
-            cf = hrp.CFrame
-        elseif mode == "Head" then
-            cf = CFrame.new(hrp.Position + Vector3.new(0, 20, 20))
-        elseif mode == "Front" then
-            cf = hrp.CFrame * CFrame.new(0, 0, 15)
-        end
-        
-        cf = cf or hrp.CFrame
-        vgs.RS.MenuToys.SpawnToyRemoteFunction:InvokeServer(item, cf, rotation)
-    end)
+local function SetChildren(Element, Children)
+	for _, Child in next, Children do
+		Child.Parent = Element
+	end
+	return Element
 end
 
-function UModule.IsAround(part, radius)
-    local hrp = UModule.env.ov.char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return false end
-    local pos = part:IsA("Model") and part.PrimaryPart.Position or part.Position
-    return (pos - hrp.Position).Magnitude <= radius
+local function Round(Number, Factor)
+	local Result = math.floor(Number / Factor + (math.sign(Number) * 0.5)) * Factor
+	if Result < 0 then Result = Result + Factor end
+	return Result
 end
 
-function UModule.FMC(...)
-    local args = {...}
-    local radius, cback, flag, origin
-    
-    for _, arg in ipairs(args) do
-        local t = type(arg)
-        if t == "number" then
-            radius = arg
-        elseif t == "function" then
-            cback = arg
-        elseif t == "string" and arg == "plrs" then
-            flag = "plrs"
-        elseif typeof(arg) == "Instance" and arg:IsA("BasePart") then
-            origin = arg
-        end
-    end
-    
-    if flag == "plrs" then
-        local char = vgs.p.Character
-        if not char then return end
-        
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if not hrp then return end
-        
-        radius = radius or 29
-        
-        for _, player in ipairs(vgs.ps:GetPlayers()) do
-            if player.Character and player ~= vgs.p then
-                local phrp = player.Character:FindFirstChild("HumanoidRootPart")
-                if phrp and UModule.IsAround(phrp, radius) then
-                    if cback then cback(player.Character) end
-                end
-            end
-        end
-        return
-    end
-    
-    if not radius then
-        if typeof(args[1]) == "Instance" then
-            local char = args[1]:FindFirstAncestorOfClass("Model")
-            return char and char:FindFirstChild("Humanoid") and vgs.ps:GetPlayerFromCharacter(char) or nil
-        end
-        return nil
-    end
-    
-    local char = vgs.p.Character
-    if not char then return {} end
-    
-    local hrp = origin or char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return {} end
-    
-    local results, seen = {}, {}
-    local filter = {char}
-    
-    local exclude = {"Map", "Plots", "Slots", "GrabParts"}
-    for _, name in ipairs(exclude) do
-        local obj = workspace:FindFirstChild(name)
-        if obj then table.insert(filter, obj) end
-    end
-    
-    for _, model in ipairs(workspace:GetChildren()) do
-        if model:IsA("Model") and model ~= char then
-            local gp = model:FindFirstChild("GrabParts")
-            if gp then table.insert(filter, gp) end
-        end
-    end
-    
-    if flag ~= 2 then
-        local inv = workspace:FindFirstChild(vgs.p.Name .. "SpawnedInToys")
-        if inv then table.insert(filter, inv) end
-    end
-    
-    local params = OverlapParams.new()
-    params.FilterDescendantsInstances = filter
-    params.FilterType = Enum.RaycastFilterType.Exclude
-    
-    local parts = workspace:GetPartBoundsInBox(
-        CFrame.new(hrp.Position), 
-        Vector3.new(radius * 2, radius * 2, radius * 2), 
-        params
-    )
-    
-    for _, part in ipairs(parts) do
-        if not UModule.IPPP(part, flag) then
-            local model = part:FindFirstAncestorOfClass("Model")
-            
-            if cback then
-                if model and cback(model) and not seen[model] then
-                    seen[model] = true
-                    table.insert(results, model)
-                end
-            else
-                if model and not seen[model] then
-                    seen[model] = true
-                    table.insert(results, model)
-                elseif not model and not seen[part] then
-                    seen[part] = true
-                    table.insert(results, part)
-                end
-            end
-        end
-    end
-    
-    return results
+local function ReturnProperty(Object)
+	if Object:IsA("Frame") or Object:IsA("TextButton") then
+		return "BackgroundColor3"
+	elseif Object:IsA("ScrollingFrame") then
+		return "ScrollBarImageColor3"
+	elseif Object:IsA("UIStroke") then
+		return "Color"
+	elseif Object:IsA("TextLabel") or Object:IsA("TextBox") then
+		return "TextColor3"
+	elseif Object:IsA("ImageLabel") or Object:IsA("ImageButton") then
+		return "ImageColor3"
+	end
 end
 
-function UModule.var(a1, a2, a3)
-    if type(a1) == "table" and a2 == nil then
-        for k, v in pairs(a1) do
-            UModule.env[k] = v
-        end
-        return true
-    end
-
-    if type(a1) == "string" and a2 == nil and a3 == nil then
-        if UModule.env[a1] ~= nil then return UModule.env[a1] end
-        for _, tbl in pairs(UModule.env) do
-            if type(tbl) == "table" and tbl[a1] ~= nil then
-                return tbl[a1]
-            end
-        end
-        return nil
-    end
-
-    if type(a1) == "string" and a2 ~= nil then
-        if a2 == "ref" then
-            if not UModule.env[a1] then UModule.env[a1] = {} end
-            if type(UModule.env[a1]) == "table" then return UModule.env[a1] end
-            return nil
-        end
-
-        if a2 == "get" then
-            if UModule.env[a1] and type(UModule.env[a1]) == "table" and a3 then
-                return UModule.env[a1][a3]
-            end
-            return UModule.env[a1]
-        end
-
-        if a2 == "merge" and type(a3) == "table" then
-            if not UModule.env[a1] then UModule.env[a1] = {} end
-            if type(UModule.env[a1]) == "table" then
-                for k, v in pairs(a3) do UModule.env[a1][k] = v end
-            end
-            return true
-        end
-
-        if a3 ~= nil then
-            if not UModule.env[a1] then UModule.env[a1] = {} end
-            if type(UModule.env[a1]) ~= "table" then UModule.env[a1] = {} end
-            UModule.env[a1][a2] = a3
-            return true
-        else
-            UModule.env[a1] = a2
-            return true
-        end
-    end
-
-    return nil
+local function AddThemeObject(Object, Type)
+	if not OrionLib.ThemeObjects[Type] then
+		OrionLib.ThemeObjects[Type] = {}
+	end
+	table.insert(OrionLib.ThemeObjects[Type], Object)
+	local Theme = OrionLib.Themes[OrionLib.SelectedTheme]
+	if Theme[Type] then
+		Object[ReturnProperty(Object)] = Theme[Type]
+	end
+	return Object
 end
 
-getgenv().var = UModule.var
-
-UModule.tm = {}
-
-function UModule.tm.Add(tbl, key, value)
-    if type(tbl) ~= "table" or key == nil then return false end
-    
-    if value ~= nil then
-        tbl[key] = value
-    else
-        for _, v in pairs(tbl) do
-            if v == key then return true end
-        end
-        table.insert(tbl, key)
-    end
-    
-    return true
+local function SetTheme()
+	local Theme = OrionLib.Themes[OrionLib.SelectedTheme]
+	for Name, Objects in pairs(OrionLib.ThemeObjects) do
+		if Theme[Name] then
+			for _, Object in pairs(Objects) do
+				local Prop = ReturnProperty(Object)
+				if Prop then
+					TweenService:Create(Object, TweenInfo.new(0.65, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
+						[Prop] = Theme[Name]
+					}):Play()
+				end
+			end
+		end
+	end
 end
 
-function UModule.tm.Find(tbl, key)
-    if type(tbl) ~= "table" or key == nil then return nil end
-    if tbl[key] ~= nil then return tbl[key] end
-    
-    for i, v in pairs(tbl) do
-        if v == key then return i, v end
-    end
-    
-    return nil
+function OrionLib:SetTheme(ThemeName)
+	if OrionLib.Themes[ThemeName] then
+		OrionLib.SelectedTheme = ThemeName
+		SetTheme()
+	end
 end
 
-function UModule.tm.val(tbl, key)
-    if type(tbl) ~= "table" or key == nil then return false end
-    
-    local value = tbl[key]
-    
-    if value == nil then
-        for _, v in pairs(tbl) do
-            if v == key then return true end
-        end
-        return false
-    end
-    
-    return type(value) == "boolean" and value or (value ~= nil and value ~= false)
+function OrionLib:CreateTheme(Name, Colors)
+	OrionLib.Themes[Name] = Colors
 end
 
-function UModule.tm.Remove(tbl, key)
-    if type(tbl) ~= "table" or key == nil then return false end
-    
-    if tbl[key] ~= nil then
-        tbl[key] = nil
-        return true
-    end
-    
-    for i, v in pairs(tbl) do
-        if v == key then
-            if type(i) == "number" then
-                table.remove(tbl, i)
-            else
-                tbl[i] = nil
-            end
-            return true
-        end
-    end
-    
-    return false
+function OrionLib:ChangeThemeColor(ColorType, NewColor)
+	local Theme = OrionLib.Themes[OrionLib.SelectedTheme]
+	if Theme[ColorType] then
+		Theme[ColorType] = NewColor
+		SetTheme()
+	end
 end
 
-function UModule.tm.Clear(tbl)
-    if type(tbl) ~= "table" then return false end
-    for k in pairs(tbl) do tbl[k] = nil end
-    return true
+local function PackColor(Color)
+	return {R = Color.R * 255, G = Color.G * 255, B = Color.B * 255}
 end
 
-function UModule.wfc(...)
-    local args = {...}
-    local name, parent, timeout
-    
-    for _, arg in ipairs(args) do
-        local t = type(arg)
-        if t == "string" then
-            name = arg
-        elseif t == "number" then
-            timeout = arg
-        elseif typeof(arg) == "Instance" then
-            parent = arg
-        end
-    end
-    
-    if not name then return nil end
-    
-    parent = parent or UModule.env.ov.char
-    
-    if not timeout then
-        local child
-        if not parent:FindFirstChild(name) then
-            repeat
-                child = parent:FindFirstChild(name)
-                if child then return child end
-                task.wait()
-            until child
-        else
-            return parent:FindFirstChild(name)
-        end
-        return child
-    end
-    
-    local startTime = tick()
-    local child
-
-    if parent:FindFirstChild(name) then
-        return parent:FindFirstChild(name)
-    end
-    
-    repeat
-        child = parent:FindFirstChild(name)
-        if child then return child end
-        task.wait()
-    until (tick() - startTime) >= timeout
-    
-    return nil
+local function UnpackColor(Color)
+	return Color3.fromRGB(Color.R, Color.G, Color.B)
 end
 
-function UModule.tpm(pos, priority, back, tag)
-    local tv = UModule.var("TempV")
-    if not tv.tpm then tv.tpm = { saved = {}, queue = {}, busy = false } end
-    local t = tv.tpm
-
-    local dest = typeof(pos) == "CFrame" and pos or CFrame.new(pos)
-
-    if back then
-        local hrp = UModule.MBP("HumanoidRootPart")
-        if t.saved[tag] then dest, t.saved[tag] = t.saved[tag], nil
-        elseif hrp then t.saved[tag] = hrp.CFrame end
-    end
-
-    table.insert(t.queue, { dest = dest, pri = priority or 0 })
-
-    if t.busy or #t.queue == 0 then return end
-    t.busy = true
-    table.sort(t.queue, function(a, b) return a.pri < b.pri end)
-    task.spawn(function()
-        local hrp = UModule.MBP("HumanoidRootPart")
-        if hrp then
-            local job = table.remove(t.queue, 1)
-            hrp.CFrame, hrp.AssemblyLinearVelocity, hrp.AssemblyAngularVelocity = job.dest, Vector3.zero, Vector3.zero
-        end
-        t.busy = false
-    end)
+local function LoadCfg(Config)
+	local Data = HttpService:JSONDecode(Config)
+	for a, b in pairs(Data) do
+		if OrionLib.Flags[a] then
+			task.spawn(function()
+				if OrionLib.Flags[a].Type == "Colorpicker" then
+					OrionLib.Flags[a]:Set(UnpackColor(b))
+				else
+					OrionLib.Flags[a]:Set(b)
+				end
+			end)
+		end
+	end
 end
 
-function UModule.tmr(tag, a2, a3)
-    local dur = type(a2) == "number" and a2 or (type(a3) == "number" and a3 or nil)
-    local cmd = type(a2) == "string" and a2 or (type(a3) == "string" and a3 or nil)
-
-    if not a2 and not a3 then
-        return UModule.env.Timers[tag] and UModule.env.Timers[tag]._run or false
-    end
-
-    if cmd then
-        if not UModule.env.Timers[tag] then return end
-        if cmd == "pause" then
-            UModule.env.Timers[tag]._pause = true
-            UModule.env.Timers[tag]._pt = tick()
-        elseif cmd == "resume" then
-            if UModule.env.Timers[tag]._pause then
-                local pd = tick() - UModule.env.Timers[tag]._pt
-                UModule.env.Timers[tag]._et = UModule.env.Timers[tag]._et + pd
-                UModule.env.Timers[tag]._pause = false
-            end
-        elseif cmd == "restart" then
-            if dur then
-                UModule.env.Timers[tag]._et = tick() + dur
-                UModule.env.Timers[tag]._pause = false
-            end
-        elseif cmd == "stop" then
-            UModule.env.Timers[tag]._run = false
-            UModule.env.Timers[tag] = nil
-        end
-        return
-    end
-
-    if not dur then return end
-
-    if UModule.env.Timers[tag] then
-        UModule.env.Timers[tag]._run = false
-    end
-
-    UModule.env.Timers[tag] = {
-        _run   = true,
-        _pause = false,
-        _et    = tick() + dur
-    }
-
-    task.spawn(function()
-        local t = UModule.env.Timers[tag]
-        local remaining = t._et - tick()
-        if remaining > 0 then
-            task.wait(remaining)
-        end
-        if t._run and not t._pause then
-            t._run = false
-            UModule.env.Timers[tag] = nil
-        end
-    end)
+local function SaveCfg(Name)
+	if not OrionLib.SaveCfg then return end
+	local Data = {}
+	for i, v in pairs(OrionLib.Flags) do
+		if v.Save then
+			Data[i] = v.Type == "Colorpicker" and PackColor(v.Value) or v.Value
+		end
+	end
+	writefile(OrionLib.Folder .. "/" .. Name .. ".txt", HttpService:JSONEncode(Data))
 end
 
-function UModule.cm(...)
-    local args = {...}
-    local Connections = UModule.env.Connections
+local WhitelistedMouse = {Enum.UserInputType.MouseButton1, Enum.UserInputType.MouseButton2, Enum.UserInputType.MouseButton3}
+local BlacklistedKeys = {Enum.KeyCode.Unknown, Enum.KeyCode.W, Enum.KeyCode.A, Enum.KeyCode.S, Enum.KeyCode.D, Enum.KeyCode.Up, Enum.KeyCode.Left, Enum.KeyCode.Down, Enum.KeyCode.Right, Enum.KeyCode.Slash, Enum.KeyCode.Tab, Enum.KeyCode.Backspace, Enum.KeyCode.Escape}
 
-    if #args == 2 and type(args[1]) == "string" then
-        local name, cmd = args[1], args[2]
-        local conn = Connections[name]
-
-        if cmd == "disc" or cmd == "disconnect" then
-            if conn then
-                pcall(conn.Disconnect, conn)
-                Connections[name] = nil
-            end
-            return
-        end
-        if cmd == "pause" then
-            if conn then
-                conn._paused = true
-                if conn._setPaused then conn._setPaused(true) end
-            end
-            return
-        end
-        if cmd == "resume" then
-            if conn then
-                conn._paused = false
-                if conn._setPaused then conn._setPaused(false) end
-            end
-            return
-        end
-        if cmd == "status" then
-            if not conn then return "none" end
-            return conn._paused and "paused" or "active"
-        end
-        if cmd == "recon" or cmd == "reconnect" then
-            if not conn then return end
-            local senv    = conn.eventType
-            local sprop   = conn.propName
-            local savedTtle = conn.ttle
-            local oldInst = conn.inst
-            local callback = conn._cbacks[1].func
-            pcall(conn.Disconnect, conn)
-
-            local ninst = nil
-            local nups = debug.getinfo(callback, "u").nups
-            for i = 1, nups do
-                local _, value = debug.getupvalue(callback, i)
-                if type(value) == "function" then
-                    local ok, result = pcall(value, oldInst.Name)
-                    if ok and typeof(result) == "Instance" then ninst = result break end
-                elseif typeof(value) == "Instance" and value.ClassName == oldInst.ClassName then
-                    ninst = value break
-                end
-            end
-
-            if not ninst then
-                local ok, char = pcall(function() return vgs.p.Character end)
-                if ok and char then ninst = char:FindFirstChild(oldInst.Name) end
-            end
-            if not ninst then return end
-
-            local reconargs = {ninst, senv}
-            if sprop then reconargs[#reconargs+1] = sprop end
-            reconargs[#reconargs+1] = callback
-            if savedTtle then reconargs[#reconargs+1] = savedTtle end
-            reconargs[#reconargs+1] = name
-            UModule.cm(table.unpack(reconargs))
-            return
-        end
-        return
-    end
-
-    local inst, cback, name, stgs, ttle, once, madd =
-        nil, nil, nil, {}, nil, false, false
-
-    local function gfstr(func)
-        local info = debug.getinfo(func, "S")
-        if info then
-            local src = (info.source or "unknown"):gsub("^@", "")
-            return src .. ":" .. (info.linedefined or 0) .. "-" .. (info.lastlinedefined or info.linedefined or 0)
-        end
-        return tostring(func)
-    end
-
-    for i = 1, #args do
-        local arg = args[i]
-        local t = type(arg)
-        if typeof(arg) == "Instance" then inst = arg
-        elseif t == "function" then cback = arg
-        elseif t == "string" then
-            if arg == "Add" then madd = true
-            elseif arg == "once" or arg == "Once" then once = true
-            else stgs[#stgs+1] = arg end
-        elseif t == "number" then ttle = arg
-        elseif t == "table" then ttle = arg end
-    end
-
-    if madd then
-        local cname = stgs[1]
-        local existing = Connections[cname]
-        if not cname or not existing or not cback then return end
-        existing._cbacks[#existing._cbacks+1] = {func = cback, once = once, counter = 0, ttle = ttle}
-        return existing
-    end
-
-    if not inst or not cback then return end
-
-    local event = stgs[1]
-
-    if event == "BindToRenderStep" or event == "BRenderStepped" then 
-        local priorityMap = {
-            First  = Enum.RenderPriority.First.Value,
-            Input  = Enum.RenderPriority.Input.Value,
-            Camera = Enum.RenderPriority.Camera.Value,
-            Last   = Enum.RenderPriority.Last.Value,
-        }
-
-        local fpsLimit = (type(ttle) == "number" or type(ttle) == "table") and ttle or nil
-
-        local priority = type(ttle) == "number" and Enum.RenderPriority.Last.Value
-            or priorityMap[ttle]
-            or Enum.RenderPriority.Last.Value
-
-        name = stgs[2] or ("brs_" .. tick())
-
-        if Connections[name] then
-            pcall(function() vgs.RunS:UnbindFromRenderStep(name) end)
-            Connections[name] = nil
-        end
-
-        local paused = false
-        local accumulated = 0
-
-        vgs.RunS:BindToRenderStep(name, priority, function(dt)
-            if paused then return end
-
-            if fpsLimit then
-                accumulated = accumulated + dt
-
-                local limit
-                if type(fpsLimit) == "number" then
-                    limit = fpsLimit
-                elseif type(fpsLimit) == "table" then
-                    limit = fpsLimit.ref and fpsLimit.ref[fpsLimit.key] or fpsLimit
-                end
-
-                local interval = 1 / limit
-                if accumulated < interval then return end
-                accumulated = accumulated % interval
-            end
-
-            cback(dt)
-        end)
-
-        Connections[name] = {
-            inst = inst,
-            eventType = "BindToRenderStep",
-            _cbacks = {{func = cback, once = false, counter = 0}},
-            _paused = false,
-            _setPaused = function(state) paused = state end,
-            Disconnect = function(self)
-                pcall(function() vgs.RunS:UnbindFromRenderStep(name) end)
-                Connections[name] = nil
-            end
-        }
-
-        return Connections[name]
-    end
-
-    local prop = nil
-
-    if not event then
-        local fstr = gfstr(cback)
-        name = (once and not name) and ("once_" .. tick())
-            or stgs[2] or (tostring(inst) .. "_Destroying_" .. fstr)
-        if Connections[name] then Connections[name] = nil end
-        local conn = inst.Destroying:Connect(cback)
-        Connections[name] = {
-            connection = conn, inst = inst, eventType = "Destroying",
-            _cbacks = {{func = cback, once = once, counter = 0, ttle = ttle}},
-            _funcString = fstr, _paused = false,
-            Disconnect = function(self)
-                if self.connection then
-                    pcall(self.connection.Disconnect, self.connection)
-                    self.connection = nil
-                    Connections[name] = nil
-                end
-            end
-        }
-        return Connections[name]
-    end
-
-    if event == "PropertyChanged" and #stgs >= 2 then
-        prop  = stgs[2]
-        name  = stgs[3]
-    else
-        name = stgs[2]
-    end
-
-    local fstr = gfstr(cback)
-
-    if not name then
-        if once then
-            name = "once_" .. tick()
-        else
-            name = tostring(inst) .. "_" .. tostring(event)
-            if prop then name = name .. "_" .. prop end
-            name = name .. "_" .. fstr
-        end
-    end
-
-    local existing = Connections[name]
-    if existing then
-        if existing._funcString ~= fstr then name = name .. "_" .. tick()
-        else Connections[name] = nil end
-    end
-
-    local function rcbs(...)
-        local connData = Connections[name]
-        if not connData or connData._paused then return end
-
-        local cbacks = connData._cbacks
-        local clen = #cbacks
-        local toRemove = nil
-
-        for i = 1, clen do
-            local cb = cbacks[i]
-            local ok = true
-            if cb.ttle then
-                cb.counter = cb.counter + 1
-                local tv = type(cb.ttle) == "table"
-                    and (cb.ttle.ref and cb.ttle.ref[cb.ttle.key] or cb.ttle)
-                    or cb.ttle
-                if cb.counter < tv then ok = false else cb.counter = 0 end
-            end
-            if ok then
-                task.spawn(cb.func, ...)
-                if cb.once then
-                    if not toRemove then toRemove = {} end
-                    toRemove[#toRemove+1] = i
-                end
-            end
-        end
-
-        if toRemove then
-            for i = #toRemove, 1, -1 do
-                table.remove(cbacks, toRemove[i])
-            end
-        end
-
-        if once then
-            task.defer(function()
-                local c = Connections[name]
-                if c then pcall(c.Disconnect, c) end
-            end)
-        end
-    end
-
-    local connection
-    local ok = pcall(function()
-        if event == "PropertyChanged" then
-            connection = inst:GetPropertyChangedSignal(prop):Connect(rcbs)
-        else
-            local evt = inst[event]
-            if evt and typeof(evt) == "RBXScriptSignal" then
-                connection = evt:Connect(rcbs)
-            end
-        end
-    end)
-
-    if not ok then return end
-
-    task.spawn(function()
-        inst.Destroying:Connect(function()
-            if connection then
-                connection:Disconnect()
-                connection = nil
-                Connections[name] = nil
-            end
-        end)
-    end)
-
-    Connections[name] = {
-        connection = connection, inst = inst, eventType = event, propName = prop,
-        _cbacks = {{func = cback, once = once, counter = 0, ttle = ttle}},
-        _funcString = fstr, _paused = false, ttle = ttle,
-        Disconnect = function(self)
-            if self.connection then
-                pcall(self.connection.Disconnect, self.connection)
-                self.connection = nil
-                Connections[name] = nil
-            end
-        end
-    }
-
-    return Connections[name]
+local function CheckKey(Table, Key)
+	for _, v in next, Table do
+		if v == Key then return true end
+	end
+	return false
 end
 
-UModule.UI = {}
+CreateElement("Corner", function(Scale, Offset)
+	return Create("UICorner", {CornerRadius = UDim.new(Scale or 0, Offset or 8)})
+end)
 
-local UI = UModule.UI
+CreateElement("Stroke", function(Color, Thickness)
+	return Create("UIStroke", {
+		Color = Color or Color3.fromRGB(255, 255, 255),
+		Thickness = Thickness or 1
+	})
+end)
 
-UI.Config = {
-    Theme = {
-        Background = Color3.fromRGB(18, 18, 22),
-        Sidebar = Color3.fromRGB(14, 14, 18),
-        Surface = Color3.fromRGB(28, 28, 34),
-        SurfaceHover = Color3.fromRGB(38, 38, 46),
-        SurfaceActive = Color3.fromRGB(48, 48, 58),
-        Border = Color3.fromRGB(40, 40, 48),
-        Text = Color3.fromRGB(220, 220, 230),
-        TextDim = Color3.fromRGB(160, 160, 175),
-        TextBright = Color3.fromRGB(255, 255, 255),
-        Accent = Color3.fromRGB(88, 101, 242),
-        AccentHover = Color3.fromRGB(108, 121, 262),
-        AccentDim = Color3.fromRGB(68, 81, 202),
-        Green = Color3.fromRGB(67, 181, 129),
-        Red = Color3.fromRGB(242, 78, 78),
-        Yellow = Color3.fromRGB(250, 200, 70)
-    },
-    Font = Enum.Font.Gotham,
-    FontSize = {
-        Small = 12,
-        Medium = 14,
-        Large = 16,
-        Title = 20
-    },
-    Corner = {
-        Small = 4,
-        Medium = 8,
-        Large = 12
-    },
-    Padding = {
-        Tiny = 4,
-        Small = 8,
-        Medium = 12,
-        Large = 16,
-        XL = 24
-    },
-    Animation = {
-        Duration = 0.15,
-        Style = Enum.EasingStyle.Quad,
-        Direction = Enum.EasingDirection.Out
-    }
-}
+CreateElement("List", function(Scale, Offset)
+	return Create("UIListLayout", {
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(Scale or 0, Offset or 0)
+	})
+end)
 
-local function tween(obj, props, duration)
-    duration = duration or UI.Config.
+CreateElement("Padding", function(Bottom, Left, Right, Top)
+	return Create("UIPadding", {
+		PaddingBottom = UDim.new(0, Bottom or 4),
+		PaddingLeft = UDim.new(0, Left or 4),
+		PaddingRight = UDim.new(0, Right or 4),
+		PaddingTop = UDim.new(0, Top or 4)
+	})
+end)
+
+CreateElement("TFrame", function()
+	return Create("Frame", {BackgroundTransparency = 1})
+end)
+
+CreateElement("Frame", function(Color)
+	return Create("Frame", {
+		BackgroundColor3 = Color or Color3.fromRGB(255, 255, 255),
+		BorderSizePixel = 0
+	})
+end)
+
+CreateElement("RoundFrame", function(Color, Scale, Offset)
+	return Create("Frame", {
+		BackgroundColor3 = Color or Color3.fromRGB(255, 255, 255),
+		BorderSizePixel = 0
+	}, {
+		Create("UICorner", {CornerRadius = UDim.new(Scale or 0, Offset or 8)})
+	})
+end)
+
+CreateElement("Button", function()
+	return Create("TextButton", {
+		Text = "",
+		AutoButtonColor = false,
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0
+	})
+end)
+
+CreateElement("ScrollFrame", function(Color, Width)
+	return Create("ScrollingFrame", {
+		BackgroundTransparency = 1,
+		MidImage = "rbxassetid://7445543667",
+		BottomImage = "rbxassetid://7445543667",
+		TopImage = "rbxassetid://7445543667",
+		ScrollBarImageColor3 = Color,
+		BorderSizePixel = 0,
+		ScrollBarThickness = Width,
+		CanvasSize = UDim2.new(0, 0, 0, 0)
+	})
+end)
+
+CreateElement("Image", function(ImageID)
+	local Img = Create("ImageLabel", {
+		Image = ImageID,
+		BackgroundTransparency = 1
+	})
+	local Icon = GetIcon(ImageID)
+	if Icon then Img.Image = Icon end
+	return Img
+end)
+
+CreateElement("Label", function(Text, TextSize, Transparency)
+	return Create("TextLabel", {
+		Text = Text or "",
+		TextColor3 = Color3.fromRGB(240, 240, 245),
+		TextTransparency = Transparency or 0,
+		TextSize = TextSize or 14,
+		Font = Enum.Font.Gotham,
+		RichText = true,
+		BackgroundTransparency = 1,
+		TextXAlignment = Enum.TextXAlignment.Left
+	})
+end)
+
+local function AddDraggingFunctionality(DragPoint, Main)
+	local Dragging, DragInput, MousePos, FramePos
+	DragPoint.InputBegan:Connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+			Dragging = true
+			MousePos = Input.Position
+			FramePos = Main.Position
+			Input.Changed:Connect(function()
+				if Input.UserInputState == Enum.UserInputState.End then
+					Dragging = false
+				end
+			end)
+		end
+	end)
+	DragPoint.InputChanged:Connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseMovement then
+			DragInput = Input
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(Input)
+		if Input == DragInput and Dragging then
+			local Delta = Input.Position - MousePos
+			TweenService:Create(Main, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+				Position = UDim2.new(FramePos.X.Scale, FramePos.X.Offset + Delta.X, FramePos.Y.Scale, FramePos.Y.Offset + Delta.Y)
+			}):Play()
+		end
+	end)
+end
+
+local function AddResizeFunctionality(Main, MinSize)
+	MinSize = MinSize or Vector2.new(480, 280)
+
+	local ResizeHandle = SetProps(MakeElement("Image", "rbxassetid://6031094670"), {
+		Size = UDim2.new(0, 16, 0, 16),
+		Position = UDim2.new(1, -20, 1, -20),
+		BackgroundTransparency = 1,
+		ImageColor3 = Color3.fromRGB(160, 160, 175),
+		ImageTransparency = 0.4,
+		ZIndex = 15,
+		Parent = Main
+	})
+
+	local Resizing = false
+	local StartMouse, StartSize
+
+	ResizeHandle.MouseEnter:Connect(function()
+		TweenService:Create(ResizeHandle, TweenInfo.new(0.2), {
+			ImageTransparency = 0,
+			ImageColor3 = Color3.fromRGB(230, 230, 240)
+		}):Play()
+	end)
+
+	ResizeHandle.MouseLeave:Connect(function()
+		if not Resizing then
+			TweenService:Create(ResizeHandle, TweenInfo.new(0.2), {
+				ImageTransparency = 0.4,
+				ImageColor3 = Color3.fromRGB(160, 160, 175)
+			}):Play()
+		end
+	end)
+
+	ResizeHandle.InputBegan:Connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+			Resizing = true
+			StartMouse = Input.Position
+			StartSize = Main.AbsoluteSize
+			Input.Changed:Connect(function()
+				if Input.UserInputState == Enum.UserInputState.End then
+					Resizing = false
+					TweenService:Create(ResizeHandle, TweenInfo.new(0.2), {
+						ImageTransparency = 0.4,
+						ImageColor3 = Color3.fromRGB(160, 160, 175)
+					}):Play()
+				end
+			end)
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(Input)
+		if Resizing and Input.UserInputType == Enum.UserInputType.MouseMovement then
+			local Delta = Input.Position - StartMouse
+			local NewX = math.max(MinSize.X, StartSize.X + Delta.X)
+			local NewY = math.max(MinSize.Y, StartSize.Y + Delta.Y)
+			Main.Size = UDim2.new(0, NewX, 0, NewY)
+		end
+	end)
+end
+
+local NotificationHolder = SetProps(SetChildren(MakeElement("TFrame"), {
+	SetProps(MakeElement("List"), {
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		VerticalAlignment = Enum.VerticalAlignment.Bottom,
+		Padding = UDim.new(0, 6)
+	})
+}), {
+	Position = UDim2.new(1, -25, 1, -25),
+	Size = UDim2.new(0, 300, 1, -25),
+	AnchorPoint = Vector2.new(1, 1),
+	Parent = Orion
+})
+
+function OrionLib:MakeNotification(NotificationConfig)
+	task.spawn(function()
+		NotificationConfig.Name = NotificationConfig.Name or "Notification"
+		NotificationConfig.Content = NotificationConfig.Content or "Test"
+		NotificationConfig.Image = NotificationConfig.Image or "rbxassetid://4384403532"
+		NotificationConfig.Time = NotificationConfig.Time or 5
+
+		local NotificationParent = SetProps(MakeElement("TFrame"), {
+			Size = UDim2.new(1, 0, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y,
+			Parent = NotificationHolder
+		})
+
+		local NotificationFrame = SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(18, 18, 24), 0, 8), {
+			Parent = NotificationParent,
+			Size = UDim2.new(1, 0, 0, 0),
+			Position = UDim2.new(1, -50, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y
+		}), {
+			MakeElement("Stroke", Color3.fromRGB(45, 45, 55), 1),
+			MakeElement("Padding", 12, 12, 12, 12),
+			SetProps(MakeElement("Image", NotificationConfig.Image), {
+				Size = UDim2.new(0, 18, 0, 18),
+				ImageColor3 = Color3.fromRGB(240, 240, 245),
+				Name = "Icon"
+			}),
+			SetProps(MakeElement("Label", NotificationConfig.Name, 14), {
+				Size = UDim2.new(1, -28, 0, 18),
+				Position = UDim2.new(0, 28, 0, 0),
+				Font = Enum.Font.GothamBold,
+				Name = "Title"
+			}),
+			SetProps(MakeElement("Label", NotificationConfig.Content, 13), {
+				Size = UDim2.new(1, 0, 0, 0),
+				Position = UDim2.new(0, 0, 0, 22),
+				Font = Enum.Font.Gotham,
+				Name = "Content",
+				AutomaticSize = Enum.AutomaticSize.Y,
+				TextColor3 = Color3.fromRGB(180, 180, 195),
+				TextWrapped = true
+			})
+		})
+
+		TweenService:Create(NotificationFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {Position = UDim2.new(0, 0, 0, 0)}):Play()
+		task.wait(NotificationConfig.Time - 0.7)
+		TweenService:Create(NotificationFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quint), {BackgroundTransparency = 0.7}):Play()
+		TweenService:Create(NotificationFrame.Icon, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {ImageTransparency = 1}):Play()
+		TweenService:Create(NotificationFrame.Title, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {TextTransparency = 0.5}):Play()
+		TweenService:Create(NotificationFrame.Content, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {TextTransparency = 0.6}):Play()
+		task.wait(0.2)
+		NotificationFrame:TweenPosition(UDim2.new(1, 20, 0, 0), "In", "Quint", 0.55, true)
+		task.wait(0.7)
+		NotificationFrame:Destroy()
+	end)
+end
+
+function OrionLib:Init()
+	if OrionLib.SaveCfg then
+		pcall(function()
+			if isfile(OrionLib.Folder .. "/" .. game.GameId .. ".txt") then
+				LoadCfg(readfile(OrionLib.Folder .. "/" .. game.GameId .. ".txt"))
+				OrionLib:MakeNotification({
+					Name = "Configuration",
+					Content = "Config loaded for game " .. game.GameId,
+					Time = 4
+				})
+			end
+		end)
+	end
+end
+
+function OrionLib:MakeWindow(WindowConfig)
+	local FirstTab = true
+	local Minimized = false
+	local UIHidden = false
+	local CurrentSize = UDim2.new(0, 615, 0, 420)
+
+	WindowConfig = WindowConfig or {}
+	WindowConfig.Name = WindowConfig.Name or "Orion Library"
+	WindowConfig.ConfigFolder = WindowConfig.ConfigFolder or WindowConfig.Name
+	WindowConfig.SaveConfig = WindowConfig.SaveConfig or false
+	WindowConfig.HidePremium = WindowConfig.HidePremium or false
+	WindowConfig.IntroEnabled = WindowConfig.IntroEnabled ~= false
+	WindowConfig.IntroText = WindowConfig.IntroText or "Orion Library"
+	WindowConfig.CloseCallback = WindowConfig.CloseCallback or function() end
+	WindowConfig.ShowIcon = WindowConfig.ShowIcon or false
+	WindowConfig.Icon = WindowConfig.Icon or "rbxassetid://8834748103"
+	WindowConfig.IntroIcon = WindowConfig.IntroIcon or "rbxassetid://8834748103"
+	OrionLib.Folder = WindowConfig.ConfigFolder
+	OrionLib.SaveCfg = WindowConfig.SaveConfig
+	WindowConfig.Background = WindowConfig.Background or nil
+	WindowConfig.BackgroundTransparency = WindowConfig.BackgroundTransparency or 0.4
+
+	if WindowConfig.SaveConfig and not isfolder(WindowConfig.ConfigFolder) then
+		makefolder(WindowConfig.ConfigFolder)
+	end
+
+	local TabHolder = AddThemeObject(SetChildren(SetProps(MakeElement("ScrollFrame", Color3.fromRGB(255, 255, 255), 3), {
+		Size = UDim2.new(1, 0, 1, -50),
+		CanvasSize = UDim2.new(0, 0, 0, 0),
+		ScrollBarThickness = 2,
+		ScrollBarImageColor3 = Color3.fromRGB(60, 60, 75)
+	}), {
+		MakeElement("List", 0, 2),
+		MakeElement("Padding", 4, 6, 6, 4)
+	}), "Divider")
+
+	AddConnection(TabHolder.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"), function()
+		TabHolder.CanvasSize = UDim2.new(0, 0, 0, TabHolder.UIListLayout.AbsoluteContentSize.Y + 16)
+	end)
+
+	local CloseBtn = SetChildren(SetProps(MakeElement("Button"), {
+		Size = UDim2.new(0.5, 0, 1, 0),
+		Position = UDim2.new(0.5, 0, 0, 0),
+		BackgroundTransparency = 1
+	}), {
+		AddThemeObject(SetProps(MakeElement("Image", "rbxassetid://7072725342"), {
+			Position = UDim2.new(0, 9, 0, 6),
+			Size = UDim2.new(0, 16, 0, 16)
+		}), "Text")
+	})
+
+	local MinimizeBtn = SetChildren(SetProps(MakeElement("Button"), {
+		Size = UDim2.new(0.5, 0, 1, 0),
+		BackgroundTransparency = 1
+	}), {
+		AddThemeObject(SetProps(MakeElement("Image", "rbxassetid://7072719338"), {
+			Position = UDim2.new(0, 9, 0, 6),
+			Size = UDim2.new(0, 16, 0, 16),
+			Name = "Ico"
+		}), "Text")
+	})
+
+	local DragPoint = SetProps(MakeElement("TFrame"), {
+		Size = UDim2.new(1, 0, 0, 44)
+	})
+
+	local WindowStuff = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 6), {
+		Size = UDim2.new(0, 160, 1, -44),
+		Position = UDim2.new(0, 0, 0, 44),
+		BackgroundTransparency = 0.35
+	}), {
+		AddThemeObject(SetProps(MakeElement("Frame"), {
+			Size = UDim2.new(1, 0, 0, 6),
+			Position = UDim2.new(0, 0, 0, 0),
+			BackgroundTransparency = 0.35
+		}), "Second"),
+		AddThemeObject(SetProps(MakeElement("Frame"), {
+			Size = UDim2.new(0, 6, 1, 0),
+			Position = UDim2.new(1, -6, 0, 0),
+			BackgroundTransparency = 0.35
+		}), "Second"),
+		AddThemeObject(SetProps(MakeElement("Frame"), {
+			Size = UDim2.new(0, 1, 1, 0),
+			Position = UDim2.new(1, -1, 0, 0)
+		}), "Stroke"),
+		TabHolder,
+		SetChildren(SetProps(MakeElement("TFrame"), {
+			Size = UDim2.new(1, 0, 0, 44),
+			Position = UDim2.new(0, 0, 1, -44)
+		}), {
+			AddThemeObject(SetProps(MakeElement("Frame"), {
+				Size = UDim2.new(1, 0, 0, 1)
+			}), "Stroke"),
+			AddThemeObject(SetChildren(SetProps(MakeElement("Frame"), {
+				AnchorPoint = Vector2.new(0, 0.5),
+				Size = UDim2.new(0, 28, 0, 28),
+				Position = UDim2.new(0, 8, 0.5, 0)
+			}), {
+				SetProps(MakeElement("Image", "https://www.roblox.com/headshot-thumbnail/image?userId=" .. LocalPlayer.UserId .. "&width=420&height=420&format=png"), {
+					Size = UDim2.new(1, 0, 1, 0)
+				}),
+				AddThemeObject(SetProps(MakeElement("Image", "rbxassetid://4031889928"), {
+					Size = UDim2.new(1, 0, 1, 0)
+				}), "Second"),
+				MakeElement("Corner", 1)
+			}), "Divider"),
+			AddThemeObject(SetProps(MakeElement("Label", LocalPlayer.DisplayName, 12), {
+				Size = UDim2.new(1, -44, 0, 12),
+				Position = UDim2.new(0, 44, 0, 14),
+				Font = Enum.Font.GothamSemibold,
+				ClipsDescendants = true
+			}), "Text"),
+			AddThemeObject(SetProps(MakeElement("Label", "Player", 10), {
+				Size = UDim2.new(1, -44, 0, 10),
+				Position = UDim2.new(0, 44, 0, 28),
+				Visible = not WindowConfig.HidePremium
+			}), "TextDark")
+		})
+	}), "Second")
+
+	local WindowName = AddThemeObject(SetProps(MakeElement("Label", WindowConfig.Name, 15), {
+		Size = UDim2.new(1, -30, 2, 0),
+		Position = UDim2.new(0, 16, 0, -20),
+		Font = Enum.Font.GothamBlack,
+		TextSize = 17
+	}), "Text")
+
+	local WindowTopBarLine = AddThemeObject(SetProps(MakeElement("Frame"), {
+		Size = UDim2.new(1, 0, 0, 1),
+		Position = UDim2.new(0, 0, 1, -1)
+	}), "Stroke")
+
+	local MainWindow = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 8), {
+	Parent = Orion,
+	Position = UDim2.new(0.5, -307, 0.5, -210),
+	Size = CurrentSize,
+	ClipsDescendants = true,
+	BackgroundTransparency = 0.05
+}), {
+	SetChildren(SetProps(MakeElement("TFrame"), {
+		Size = UDim2.new(1, 0, 0, 44),
+		Name = "TopBar",
+		BackgroundTransparency = 1
+	}), {
+		AddThemeObject(SetProps(MakeElement("Frame"), {
+			Size = UDim2.new(1, 0, 0, 1),
+			Position = UDim2.new(0, 0, 1, 0)
+		}), "Stroke"),
+		WindowName,
+		WindowTopBarLine,
+		AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 6), {
+			Size = UDim2.new(0, 64, 0, 26),
+			Position = UDim2.new(1, -76, 0, 9)
+		}), {
+			AddThemeObject(MakeElement("Stroke"), "Stroke"),
+			AddThemeObject(SetProps(MakeElement("Frame"), {
+				Size = UDim2.new(0, 1, 1, 0),
+				Position = UDim2.new(0.5, 0, 0, 0)
+			}), "Stroke"),
+			CloseBtn,
+			MinimizeBtn
+		}), "Second")
+	}),
+	DragPoint,
+	WindowStuff
+}), "Main")
+
+	if WindowConfig.ShowIcon then
+		WindowName.Position = UDim2.new(0, 44, 0, -20)
+		local WindowIcon = SetProps(MakeElement("Image", WindowConfig.Icon), {
+			Size = UDim2.new(0, 16, 0, 16),
+			Position = UDim2.new(0, 16, 0, 14)
+		})
+		WindowIcon.Parent = MainWindow.TopBar
+	end
+
+	AddDraggingFunctionality(DragPoint, MainWindow)
+	AddResizeFunctionality(MainWindow, Vector2.new(480, 320))
+
+		if WindowConfig.Background then
+		SetProps(MakeElement("Image", WindowConfig.Background), {
+			Size = UDim2.new(1, 0, 1, 0),
+			Position = UDim2.new(0, 0, 0, 0),
+			BackgroundTransparency = 1,
+			ImageTransparency = WindowConfig.BackgroundTransparency,
+			ScaleType = Enum.ScaleType.Crop,
+			ZIndex = 0,
+			Parent = MainWindow
+		})
+	end
+
+	AddConnection(CloseBtn.MouseButton1Up, function()
+		MainWindow.Visible = false
+		UIHidden = true
+		OrionLib:MakeNotification({
+			Name = "Interface Hidden",
+			Content = "Press RightShift to reopen",
+			Time = 4
+		})
+		WindowConfig.CloseCallback()
+	end)
+
+	AddConnection(UserInputService.InputBegan, function(Input)
+		if Input.KeyCode == Enum.KeyCode.RightShift and UIHidden then
+			MainWindow.Visible = true
+			UIHidden = false
+		end
+	end)
+
+	AddConnection(MinimizeBtn.MouseButton1Up, function()
+		if Minimized then
+			TweenService:Create(MainWindow, TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+				Size = CurrentSize
+			}):Play()
+			MinimizeBtn.Ico.Image = "rbxassetid://7072719338"
+			task.wait(0.02)
+			MainWindow.ClipsDescendants = false
+			WindowStuff.Visible = true
+			WindowTopBarLine.Visible = true
+		else
+			CurrentSize = MainWindow.Size
+			MainWindow.ClipsDescendants = true
+			WindowTopBarLine.Visible = false
+			MinimizeBtn.Ico.Image = "rbxassetid://7072720870"
+			TweenService:Create(MainWindow, TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+				Size = UDim2.new(0, WindowName.TextBounds.X + 130, 0, 44)
+			}):Play()
+			task.wait(0.08)
+			WindowStuff.Visible = false
+		end
+		Minimized = not Minimized
+	end)
+
+	local function LoadSequence()
+		MainWindow.Visible = false
+		local Logo = SetProps(MakeElement("Image", WindowConfig.IntroIcon), {
+			Parent = Orion,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 0, 0.42, 0),
+			Size = UDim2.new(0, 26, 0, 26),
+			ImageTransparency = 1
+		})
+		local Text = SetProps(MakeElement("Label", WindowConfig.IntroText, 14), {
+			Parent = Orion,
+			Size = UDim2.new(1, 0, 1, 0),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 18, 0.5, 0),
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Font = Enum.Font.GothamBold,
+			TextTransparency = 1
+		})
+		TweenService:Create(Logo, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {ImageTransparency = 0, Position = UDim2.new(0.5, 0, 0.5, 0)}):Play()
+		task.wait(0.7)
+		TweenService:Create(Logo, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Position = UDim2.new(0.5, -(Text.TextBounds.X / 2), 0.5, 0)}):Play()
+		task.wait(0.25)
+		TweenService:Create(Text, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {TextTransparency = 0}):Play()
+		task.wait(1.6)
+		TweenService:Create(Text, TweenInfo.new(0.3, Enum.EasingStyle.Quad),
