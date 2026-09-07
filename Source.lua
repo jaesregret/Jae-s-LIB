@@ -72,7 +72,7 @@ local OrionLib = {
 		Transparency = 0,
 		Scale = 1
 	},
-	Version = "2.0"
+	Version = "2.1-Smooth"
 }
 
 local Icons = {}
@@ -809,6 +809,10 @@ function OrionLib:MakeWindow(WindowConfig)
 	WindowStuff
 }), "Main")
 
+	-- Start hidden so the open animation / intro feels clean
+	MainWindow.Visible = false
+	MainWindow.BackgroundTransparency = 1
+
 	local WindowScale = Create("UIScale", {Scale = tonumber(UiState.Scale) or OrionLib.UISettings.Scale, Parent = MainWindow})
 	OrionLib.UISettings.Scale = WindowScale.Scale
 	if UiState.Position and UiState.Position.X and UiState.Position.Y then
@@ -844,7 +848,7 @@ function OrionLib:MakeWindow(WindowConfig)
 		end)
 	end
 
-	MainWindow.BackgroundTransparency = OrionLib.UISettings.Transparency
+	-- BackgroundTransparency is handled by the open animation (keeps the fade-in smooth)
 	AddConnection(MainWindow:GetPropertyChangedSignal("Position"), SaveWindowState)
 	AddConnection(MainWindow:GetPropertyChangedSignal("Size"), SaveWindowState)
 
@@ -1038,40 +1042,102 @@ function OrionLib:MakeWindow(WindowConfig)
 		Minimized = not Minimized
 	end)
 
+	-- Smooth open animation for the main window
+	local function OpenMainWindow()
+		MainWindow.Visible = true
+		MainWindow.BackgroundTransparency = 1
+		local targetScale = WindowScale.Scale
+		WindowScale.Scale = 0.82
+
+		TweenService:Create(MainWindow, TweenInfo.new(0.55, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+			BackgroundTransparency = OrionLib.UISettings.Transparency or 0
+		}):Play()
+		TweenService:Create(WindowScale, TweenInfo.new(0.55, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+			Scale = targetScale
+		}):Play()
+	end
+
 	local function LoadSequence()
 		MainWindow.Visible = false
+
+		-- Soft dark backdrop for the intro
+		local Backdrop = SetProps(MakeElement("Frame", Color3.fromRGB(0, 0, 0)), {
+			Parent = Orion,
+			Size = UDim2.new(1, 0, 1, 0),
+			BackgroundTransparency = 1,
+			ZIndex = 50
+		})
+
 		local Logo = SetProps(MakeElement("Image", WindowConfig.IntroIcon), {
 			Parent = Orion,
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(0.5, 0, 0.42, 0),
-			Size = UDim2.new(0, 26, 0, 26),
-			ImageTransparency = 1
+			Position = UDim2.new(0.5, 0, 0.48, 0),
+			Size = UDim2.new(0, 0, 0, 0),
+			ImageTransparency = 1,
+			ZIndex = 51
 		})
-		local Text = SetProps(MakeElement("Label", WindowConfig.IntroText, 14), {
+
+		local Text = SetProps(MakeElement("Label", WindowConfig.IntroText, 18), {
 			Parent = Orion,
-			Size = UDim2.new(1, 0, 1, 0),
+			Size = UDim2.new(1, 0, 0, 30),
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(0.5, 18, 0.5, 0),
+			Position = UDim2.new(0.5, 0, 0.58, 0),
 			TextXAlignment = Enum.TextXAlignment.Center,
 			Font = Enum.Font.GothamBold,
-			TextTransparency = 1
+			TextTransparency = 1,
+			TextSize = 18,
+			ZIndex = 51
 		})
-		TweenService:Create(Logo, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {ImageTransparency = 0, Position = UDim2.new(0.5, 0, 0.5, 0)}):Play()
-		task.wait(0.7)
-		TweenService:Create(Logo, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Position = UDim2.new(0.5, -(Text.TextBounds.X / 2), 0.5, 0)}):Play()
-		task.wait(0.25)
-		TweenService:Create(Text, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {TextTransparency = 0}):Play()
-		task.wait(1.6)
-		TweenService:Create(Text, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {TextTransparency = 1}):Play()
-		TweenService:Create(Logo, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {ImageTransparency = 1}):Play()
-		task.wait(0.3)
-		MainWindow.Visible = true
+
+		-- Fade in backdrop
+		TweenService:Create(Backdrop, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			BackgroundTransparency = 0.55
+		}):Play()
+
+		-- Logo scale + fade in
+		TweenService:Create(Logo, TweenInfo.new(0.55, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			Size = UDim2.new(0, 48, 0, 48),
+			ImageTransparency = 0
+		}):Play()
+
+		task.wait(0.55)
+
+		-- Logo moves slightly up, text fades in below
+		TweenService:Create(Logo, TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+			Position = UDim2.new(0.5, 0, 0.46, 0)
+		}):Play()
+		TweenService:Create(Text, TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+			TextTransparency = 0,
+			Position = UDim2.new(0.5, 0, 0.56, 0)
+		}):Play()
+
+		task.wait(1.45)
+
+		-- Fade everything out
+		TweenService:Create(Text, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			TextTransparency = 1
+		}):Play()
+		TweenService:Create(Logo, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			ImageTransparency = 1,
+			Size = UDim2.new(0, 32, 0, 32)
+		}):Play()
+		TweenService:Create(Backdrop, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			BackgroundTransparency = 1
+		}):Play()
+
+		task.wait(0.4)
+
+		Backdrop:Destroy()
 		Logo:Destroy()
 		Text:Destroy()
+
+		OpenMainWindow()
 	end
 
 	if WindowConfig.IntroEnabled then
-		LoadSequence()
+		task.spawn(LoadSequence)
+	else
+		OpenMainWindow()
 	end
 
 	local TabFunction = {}
